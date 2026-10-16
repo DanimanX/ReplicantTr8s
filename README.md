@@ -9,6 +9,10 @@
   <img src="assets/replicant_tr8s_preview.png" alt="Replicant TR-8S Hardware UI & LCD Screen" width="1000">
 </p>
 
+<p align="center">
+  📘 <strong><a href="docs/ReplicantTR8S_User_Manual.pdf">Download Official User Manual & Usability Guide (PDF — English & Español)</a></strong>
+</p>
+
 ---
 
 ## 🎛️ Overview
