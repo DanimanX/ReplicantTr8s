@@ -1,0 +1,176 @@
+name: Build ReplicantTR8S Multiplatform (macOS, Linux, Windows)
+
+on:
+  push:
+    branches: [ master, main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: macos
+            cmake_generator: "Xcode"
+            artifact_name: "ReplicantTR8S-macOS-Universal"
+
+          - os: ubuntu-22.04
+            platform: linux
+            cmake_generator: "Unix Makefiles"
+            artifact_name: "ReplicantTR8S-Linux-x86_64"
+
+          - os: windows-latest
+            platform: windows
+            cmake_generator: "Ninja"
+            artifact_name: "ReplicantTR8S-Windows-x64"
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Linux Audio & GUI Dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2-dev \
+            libjack-jackd2-dev \
+            ladspa-sdk \
+            libcurl4-openssl-dev \
+            libfreetype6-dev \
+            libx11-dev \
+            libxcomposite-dev \
+            libxcursor-dev \
+            libxext-dev \
+            libxinerama-dev \
+            libxrandr-dev \
+            libxrender-dev \
+            mesa-common-dev \
+            libgl1-mesa-dev \
+            libgtk-3-dev
+
+      - name: Configure CMake
+        run: |
+          EXTRA_FLAGS=""
+          if [ "${{ matrix.platform }}" = "macos" ]; then
+            EXTRA_FLAGS="-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
+          fi
+          cmake -B build -G "${{ matrix.cmake_generator }}" -DCMAKE_BUILD_TYPE=Release $EXTRA_FLAGS
+
+      - name: Build Targets (VST3, AU, Standalone)
+        run: |
+          cmake --build build --config Release --parallel
+
+      - name: Collect & Package Artifacts
+        run: |
+          mkdir -p package-staging
+
+          find build -type d -name "ReplicantTR8S.vst3" -exec cp -R {} package-staging/ \; || true
+          find build -type d -name "ReplicantTR8S.component" -exec cp -R {} package-staging/ \; || true
+          find build -type d -name "ReplicantTR8S.app" -exec cp -R {} package-staging/ \; || true
+          find build -type f -name "ReplicantTR8S.exe" -exec cp {} package-staging/ \; || true
+
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            find build -type f -executable -name "ReplicantTR8S" ! -name "*.so" ! -name "*.o" ! -path "*/CMakeFiles/*" -exec cp {} package-staging/ \; || true
+          fi
+
+          mkdir -p release-zip
+          cd package-staging
+          zip -r ../release-zip/${{ matrix.artifact_name }}.zip . || powershell -Command "Compress-Archive -Path * -DestinationPath ../release-zip/${{ matrix.artifact_name }}.zip -Force"
+          cd ..
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: release-zip/*.zip
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine Next Release Version
+        id: versioning
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            RELEASE_TAG="${{ github.ref_name }}"
+          else
+            git fetch --tags --force || true
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+            VERSION="${LATEST_TAG#v}"
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+            MAJOR=${MAJOR:-1}
+            MINOR=${MINOR:-0}
+            PATCH=${PATCH:-0}
+            PATCH=$((PATCH + 1))
+            RELEASE_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          fi
+          echo "tag=${RELEASE_TAG}" >> $GITHUB_OUTPUT
+          echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
+          echo "Release tag will be: ${RELEASE_TAG}"
+
+      - name: Download all Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: downloaded-artifacts
+
+      - name: Prepare Release Files
+        run: |
+          mkdir -p release-assets
+          find downloaded-artifacts -type f -name "*.zip" -exec cp {} release-assets/ \;
+          ls -la release-assets
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.versioning.outputs.tag }}
+          name: "ReplicantTR8S ${{ steps.versioning.outputs.tag }} - Multiplatform Release"
+          body: |
+            ## 🎛️ ReplicantTR8S - 1:1 TR-8S Rhythm Performer Clone (${{ steps.versioning.outputs.tag }})
+            **ACB + 2-Operator FM + Custom User Sample Drum Machine (Firmware v3.00 Data)**
+
+            ### 📦 Pre-Built Binaries:
+            * **macOS Universal:** `ReplicantTR8S-macOS-Universal.zip` (VST3, AU `.component`, and Standalone compatible with Apple Silicon M1/M2/M3/M4 and Intel)
+            * **Linux x86_64:** `ReplicantTR8S-Linux-x86_64.zip` (VST3 and Standalone executable for Ubuntu, Debian, Arch, Fedora)
+            * **Windows x64:** `ReplicantTR8S-Windows-x64.zip` (VST3 and Standalone `.exe` for Windows 10 and 11)
+
+            ### 🚀 Highlights:
+            * **128 Factory Kits** (`TR-808`, `TR-909`, `TR-707`, `TR-727`, `TR-606`, `TR-626`, `CR-78`, `FM-Groover`, etc.) and **128 Factory Patterns** (`1-01` to `8-16`, Variations `A–H`) extracted 1:1 from v3.00 firmware data.
+            * **522 Built-In Tones** across ACB circuit models, 2-Op FM synthesis, and PCM synth engines.
+            * **Per-Channel Custom Sample Loader**: Load `.wav`, `.aiff`, `.flac`, `.mp3`, or `.ogg` into any of the 11 channels (`BD`–`RC`) via the `[SMP]` button or Drag & Drop.
+            * **Interactive Backlit LCD Screen** with live waveform/envelope visualizer, stereo oscilloscope, parameter popups, and red 7-segment LED Tempo display.
+            * **Master FX & 8-Mode Scatter** performance engine with Reverb, dotted-8th Delay, DJ LPF/HPF filter, and bus drive.
+          draft: false
+          prerelease: false
+          files: release-assets/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,11 @@
+build/
+cmake-build-*/
+.vscode/
+.idea/
+*.user
+*.suo
+*.DS_Store
+firmware/
+tr8s_sys_v300.zip
+TR8S_UP.bin
+*.bin
