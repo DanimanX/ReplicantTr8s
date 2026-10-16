@@ -214,6 +214,13 @@ ReplicantTR8SAudioProcessorEditor::ReplicantTR8SAudioProcessorEditor(ReplicantTR
     };
     addAndMakeVisible(headerFirmwareBtn);
 
+    donateCoffeeBtn.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff2c2010));
+    donateCoffeeBtn.setColour(juce::TextButton::textColourOffId, juce::Colour(0xffffc83b));
+    donateCoffeeBtn.onClick = []() {
+        juce::URL("https://paypal.me/DanimanX?locale.x=en_US&country.x=CL").launchInDefaultBrowser();
+    };
+    addAndMakeVisible(donateCoffeeBtn);
+
     // Add Startup Firmware Modal Overlay on top of all controls when firmware is not yet loaded
     addChildComponent(firmwareOverlay);
     firmwareOverlay.setVisible(!engine.isFirmwareLoaded());
@@ -536,7 +543,8 @@ void ReplicantTR8SAudioProcessorEditor::resized() {
         stepPadRects[static_cast<size_t>(s)] = juce::Rectangle<int>(padStartX + s * padStepW, 648, padStepW - 6, 94);
     }
 
-    headerFirmwareBtn.setBounds(712, 12, 178, 19);
+    headerFirmwareBtn.setBounds(594, 12, 166, 19);
+    donateCoffeeBtn.setBounds(766, 12, 130, 19);
     firmwareOverlay.setBounds(getLocalBounds());
 }
 

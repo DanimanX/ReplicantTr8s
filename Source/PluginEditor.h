@@ -92,6 +92,7 @@ private:
     bool tryLoadFirmwareFromFile(const juce::File& file);
 
     juce::TextButton headerFirmwareBtn { "FW: LOAD..." };
+    juce::TextButton donateCoffeeBtn { "DONATE A COFFEE" };
     juce::String firmwareErrorMsg;
     std::unique_ptr<juce::FileChooser> firmwareChooser;
 

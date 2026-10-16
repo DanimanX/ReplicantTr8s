@@ -13,6 +13,12 @@
   📘 <strong><a href="docs/ReplicantTR8S_User_Manual.pdf">Download Official User Manual & Usability Guide (PDF — English & Español)</a></strong>
 </p>
 
+<p align="center">
+  <a href="https://paypal.me/DanimanX?locale.x=en_US&country.x=CL">
+    <img src="https://img.shields.io/badge/☕_Buy_Me_a_Coffee-Donate_via_PayPal-0070BA?style=for-the-badge&logo=paypal&logoColor=white" alt="Donate a Coffee via PayPal">
+  </a>
+</p>
+
 ---
 
 ## 🎛️ Overview
@@ -107,6 +113,20 @@ Automated multi-platform builds and releases run via `.github/workflows/build.ym
 * **macOS Universal Binary** (Apple Silicon M1/M2/M3/M4 + Intel x86_64)
 * **Linux x86_64** (Ubuntu, Debian, Arch, Fedora)
 * **Windows x64** (Windows 10 / 11)
+
+---
+
+## ☕ Support the Project (Buy Me a Coffee)
+
+If you enjoy using **ReplicantTR8S** in your studio or live sets and want to support its development, feel free to buy me a coffee via PayPal:
+
+<p align="center">
+  <a href="https://paypal.me/DanimanX?locale.x=en_US&country.x=CL">
+    <img src="https://img.shields.io/badge/☕_Donate_a_Coffee-PayPal.me%2FDanimanX-FFAA1A?style=for-the-badge&logo=paypal&logoColor=black" alt="PayPal Donate">
+  </a>
+</p>
+
+* **PayPal Donation Link:** [https://paypal.me/DanimanX?locale.x=en_US&country.x=CL](https://paypal.me/DanimanX?locale.x=en_US&country.x=CL)
 
 ---
 
