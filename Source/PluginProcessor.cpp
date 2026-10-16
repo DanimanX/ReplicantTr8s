@@ -172,7 +172,7 @@ void ReplicantTR8SAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     pushParametersToEngine();
 
     bool hostIsPlaying = false;
-    double hostBpm = engine.getTempoBpm();
+    double hostBpm = 0.0;
     double hostPpq = 0.0;
 
     if (auto* currentPlayHead = getPlayHead()) {

@@ -25,6 +25,27 @@ int main(int argc, char* argv[]) {
                   << ", Tone 0 = " << TR8SFirmware::FACTORY_TONES[0].name << std::endl;
     }
 
+    // Verify sequencer does NOT auto-start on boot and stops when DAW pauses
+    if (processor.getEngine().isPlaying()) {
+        std::cerr << "ERROR: Sequencer should NOT auto-start on launch!" << std::endl;
+        return 1;
+    }
+    {
+        juce::AudioBuffer<float> buf(2, 512);
+        juce::MidiBuffer midi;
+        processor.getEngine().processBlock(buf, midi, true, 135.0, 0.0); // DAW Play at 135 BPM
+        if (!processor.getEngine().isPlaying() || std::abs(processor.getEngine().getTempoBpm() - 135.0) > 0.1) {
+            std::cerr << "ERROR: Failed to sync to DAW transport play / BPM!" << std::endl;
+            return 1;
+        }
+        processor.getEngine().processBlock(buf, midi, false, 135.0, 0.25); // DAW Pause
+        if (processor.getEngine().isPlaying()) {
+            std::cerr << "ERROR: Sequencer kept playing after DAW paused!" << std::endl;
+            return 1;
+        }
+        std::cout << "Transport sync verified: Boot=Stopped, DAW Play=Playing (135 BPM), DAW Pause=Stopped." << std::endl;
+    }
+
     // 1. Verify audio synthesis for Kit 001 (TR-808), Kit 002 (TR-909), Kit 085 (CR-78), Kit 087 (FM-Groover)
     for (int kitIdx : { 0, 1, 84, 86 }) {
         processor.getEngine().loadFactoryKit(kitIdx);

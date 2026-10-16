@@ -62,7 +62,7 @@ public:
 
     // Transport
     void setPlaying(bool play);
-    bool isPlaying() const { return internalPlaying.load(std::memory_order_relaxed); }
+    bool isPlaying() const { return internalPlaying.load(std::memory_order_relaxed) || hostTransportPlaying.load(std::memory_order_relaxed); }
     void setTempoBpm(double bpm);
     double getTempoBpm() const { return tempoBpm; }
     void setShuffle(float normShuffle) { shuffleParam = juce::jlimit(-0.5f, 0.5f, normShuffle); }
@@ -115,7 +115,9 @@ private:
     float shuffleParam = 0.0f;
     float accentLevel = 0.65f;
 
-    std::atomic<bool> internalPlaying { true };
+    std::atomic<bool> internalPlaying { false };
+    std::atomic<bool> hostTransportPlaying { false };
+    bool wasHostPlaying = false;
     std::atomic<int> playheadStep { 0 };
     double sampleCounterInStep = 0.0;
 

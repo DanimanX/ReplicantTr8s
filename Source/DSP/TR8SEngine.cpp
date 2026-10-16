@@ -179,10 +179,14 @@ void TR8SEngine::toggleStep(int channelOrAccent, int step, bool withFlam, bool w
 
 void TR8SEngine::setPlaying(bool play) {
     bool wasPlaying = internalPlaying.exchange(play, std::memory_order_relaxed);
-    if (play && !wasPlaying) {
+    if (!play) {
+        hostTransportPlaying.store(false, std::memory_order_relaxed);
+        sampleCounterInStep = 0.0;
+    } else if (play && !wasPlaying && !hostTransportPlaying.load(std::memory_order_relaxed)) {
         playheadStep.store(0, std::memory_order_relaxed);
         sampleCounterInStep = 0.0;
-        advanceSequencerStep(0);
+        if (isFirmwareLoaded())
+            advanceSequencerStep(0);
     }
 }
 
@@ -256,9 +260,9 @@ void TR8SEngine::advanceSequencerStep(int stepIdx) {
 }
 
 void TR8SEngine::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages,
-                              bool hostIsPlaying, double hostBpm, double /*hostPpqPosition*/) {
+                              bool hostIsPlaying, double hostBpm, double hostPpqPosition) {
     buffer.clear();
-    if (hostBpm >= 40.0 && hostBpm <= 300.0 && hostIsPlaying) {
+    if (hostBpm >= 40.0 && hostBpm <= 300.0) {
         setTempoBpm(hostBpm);
     }
 
@@ -292,11 +296,29 @@ void TR8SEngine::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer
         }
     }
 
+    // Detect DAW Host Transport Start / Stop transitions
+    hostTransportPlaying.store(hostIsPlaying, std::memory_order_relaxed);
+    if (hostIsPlaying && !wasHostPlaying) {
+        int startStep = 0;
+        if (hostPpqPosition >= 0.0) {
+            startStep = static_cast<int>(std::floor(hostPpqPosition * 4.0)) & (NUM_STEPS - 1);
+        }
+        playheadStep.store(startStep, std::memory_order_relaxed);
+        sampleCounterInStep = 0.0;
+        if (isFirmwareLoaded())
+            advanceSequencerStep(startStep);
+    } else if (!hostIsPlaying && wasHostPlaying) {
+        // When DAW pauses/stops, stop internal playback as well so it doesn't keep running on its own
+        internalPlaying.store(false, std::memory_order_relaxed);
+        sampleCounterInStep = 0.0;
+    }
+    wasHostPlaying = hostIsPlaying;
+
     int numSamples = buffer.getNumSamples();
     float* outL = buffer.getWritePointer(0);
     float* outR = buffer.getNumChannels() > 1 ? buffer.getWritePointer(1) : outL;
 
-    bool running = internalPlaying.load(std::memory_order_relaxed) || hostIsPlaying;
+    bool running = isFirmwareLoaded() && (internalPlaying.load(std::memory_order_relaxed) || hostIsPlaying);
     double baseSamplesPerStep = (60.0 / tempoBpm) * 0.25 * sampleRate;
 
     int sWrite = scopeWriteIdx.load(std::memory_order_relaxed);
