@@ -244,6 +244,7 @@ ReplicantTR8SAudioProcessorEditor::ReplicantTR8SAudioProcessorEditor(ReplicantTR
     firmwareOverlay.setVisible(!engine.isFirmwareLoaded());
 
     setSize(1280, 760);
+    timerCallback();
     startTimerHz(30);
 }
 

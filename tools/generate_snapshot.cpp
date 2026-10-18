@@ -33,11 +33,11 @@ int main(int argc, char* argv[]) {
         processor.getEngine().loadFactoryKit(1);
     }
 
-    // Program a punchy 138 BPM Hard Techno groove in Variation A
+    // Program classic groove on BD (steps 1, 4, 9, 15) & full techno pattern
     auto& eng = processor.getEngine();
-    eng.setTempoBpm(138.0);
+    eng.setTempoBpm(135.0);
     for (int s = 0; s < 16; ++s) {
-        eng.setStep(0, 0, s, (s % 4 == 0) ? 115 : ((s == 7 || s == 14) ? 60 : 0), 0); // BD
+        eng.setStep(0, 0, s, (s == 0 || s == 3 || s == 8 || s == 14) ? 90 : 0, 0); // BD
         eng.setStep(0, 1, s, (s == 4 || s == 12) ? 105 : ((s == 15) ? 75 : 0), (s == 15) ? 2 : 0); // SD
         eng.setStep(0, 2, s, (s == 3 || s == 11) ? 85 : 0, 0); // LT
         eng.setStep(0, 5, s, (s == 6 || s == 14) ? 90 : 0, 0); // RS
@@ -48,7 +48,15 @@ int main(int argc, char* argv[]) {
         eng.setStep(0, 11, s, (s % 4 == 0 || s == 14) ? 110 : 0, 0); // ACCENT
     }
 
-    // 1. Verify custom sample loading on Channel 1 (SD)
+    // 1. Load TR-909 kit & custom sample on SD before creating editor so LCD menus are 100% synced
+    eng.loadFactoryKit(1);
+    eng.setSelectedChannel(0); // BD selected for main preview
+    eng.setChannelReverbSend(0, 0.25f);
+    eng.setChannelDelaySend(0, 0.18f);
+    eng.setChannelReverbSend(1, 0.68f);
+    eng.setChannelDelaySend(1, 0.42f);
+    processor.syncParametersFromEngineKit();
+
     {
         juce::AudioBuffer<float> testSample(2, 4410);
         for (int i = 0; i < 4410; ++i) {
@@ -60,25 +68,22 @@ int main(int argc, char* argv[]) {
         eng.getVoice(1).setCustomSampleBuffer(testSample, 44100.0, "Custom909SD.wav");
     }
 
-    std::unique_ptr<juce::AudioProcessorEditor> rawEd(processor.createEditor());
-    auto* editor = dynamic_cast<ReplicantTR8SAudioProcessorEditor*>(rawEd.get());
-    editor->setSize(1280, 760);
-
-    // Snapshot 1: TR-909 Studio Kit with SD Reverb popup active & all faders at max 150
-    eng.loadFactoryKit(1);
-    eng.setSelectedChannel(1); // SD
-    eng.setChannelReverbSend(1, 0.68f);
-    eng.setChannelDelaySend(1, 0.42f);
-    processor.syncParametersFromEngineKit();
+    // Trigger voices so oscilloscope and channel peak LEDs are live
     eng.triggerChannel(0, 1.0f, false);
     eng.triggerChannel(1, 0.95f, false);
-    eng.triggerChannel(8, 0.9f, false);
+    eng.triggerChannel(7, 0.85f, false);
     {
         juce::AudioBuffer<float> buf(2, 1024);
         juce::MidiBuffer midi;
         processor.processBlock(buf, midi);
     }
-    processor.notifyParameterPopup("SD REVERB", "68%", 0.68f);
+
+    // Clear any popup so the main README preview shows the full unobstructed LCD with REV, DLY, and LEVEL 150 bars
+    processor.notifyParameterPopup({}, {}, 0.0f);
+
+    std::unique_ptr<juce::AudioProcessorEditor> rawEd(processor.createEditor());
+    auto* editor = dynamic_cast<ReplicantTR8SAudioProcessorEditor*>(rawEd.get());
+    editor->setSize(1280, 760);
 
     juce::File outMain = juce::File::getCurrentWorkingDirectory().getChildFile("assets/replicant_tr8s_preview.png");
     saveEditorSnapshot(*editor, outMain);

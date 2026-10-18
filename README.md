@@ -6,17 +6,17 @@
 </p>
 
 <p align="center">
+  <img src="assets/replicant_tr8s_preview.png?v=2" alt="Replicant TR-8S Hardware UI & LCD Screen (Per-Channel Reverb & Delay + 150 Max Mixer)" width="1000">
+</p>
+
+<p align="center">
   <a href="assets/replicant_tr8s_promo_hardtechno_1080p.mp4">
-    <img src="assets/replicant_tr8s_promo_hardtechno_poster.png" alt="Replicant TR-8S — Hard Techno 1080p Promo (Per-Channel Reverb & Delay + 150 Max Mixer)" width="980">
+    <img src="assets/replicant_tr8s_promo_hardtechno_poster.png?v=2" alt="Replicant TR-8S — Hard Techno 1080p Promo (Per-Channel Reverb & Delay + 150 Max Mixer)" width="980">
   </a>
 </p>
 
 <p align="center">
   <em>▶ Watch the 1080p promo — Hard Techno // Rhythm Performer (English).</em>
-</p>
-
-<p align="center">
-  <img src="assets/replicant_tr8s_preview.png" alt="Replicant TR-8S Hardware UI & LCD Screen" width="1000">
 </p>
 
 <p align="center">
