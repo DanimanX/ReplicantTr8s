@@ -129,6 +129,58 @@ void RuntimeFirmwareLoader::initializeCleanDefaults() {
     }
 }
 
+void RuntimeFirmwareLoader::activateStandalonePreviewMode() {
+    initializeCleanDefaults();
+
+    static const FMOrCR78ToneMeta kBasePreviewTones[] = {
+        {0, "808 Bass 1", 1, 1},   {1, "808 Bass 2", 1, 1},   {2, "808 Long Bass", 1, 1},
+        {4, "808 Snare 1", 2, 1},  {5, "808 Snare 2", 2, 1},  {6, "808 Low Tom", 3, 1},
+        {7, "808 Mid Tom", 3, 1},  {8, "808 High Tom", 3, 1}, {15, "808 Rim Shot", 4, 1},
+        {17, "808 Hand Clap", 5, 1},{21, "808 Closed HH", 6, 1},{22, "808 Open HH", 6, 1},
+        {23, "808 Crash Cym", 7, 1},{25, "808 Cowbell", 11, 1},
+        {26, "909 Bass 1", 1, 1},  {27, "909 Bass 2", 1, 1},  {28, "909 Snare 1", 2, 1},
+        {29, "909 Snare 2", 2, 1}, {30, "909 Low Tom", 3, 1}, {31, "909 Mid Tom", 3, 1},
+        {32, "909 High Tom", 3, 1},{36, "909 Rim Shot", 4, 1},{37, "909 Hand Clap", 5, 1},
+        {38, "909 Closed HH", 6, 1},{39, "909 Open HH", 6, 1},{40, "909 Crash Cym", 7, 1},
+        {41, "909 Ride Cym", 7, 1}
+    };
+    for (const auto& m : kBasePreviewTones) {
+        std::snprintf(FACTORY_TONES[m.id].name, sizeof(FACTORY_TONES[m.id].name), "%s", m.label);
+        FACTORY_TONES[m.id].category = m.cat;
+        FACTORY_TONES[m.id].engineType = m.engineType;
+    }
+    for (const auto& m : kSupplementalToneMeta) {
+        std::snprintf(FACTORY_TONES[m.id].name, sizeof(FACTORY_TONES[m.id].name), "%s", m.label);
+        FACTORY_TONES[m.id].category = m.cat;
+        FACTORY_TONES[m.id].engineType = m.engineType;
+    }
+
+    std::snprintf(FACTORY_KITS[0].name, sizeof(FACTORY_KITS[0].name), "TR-808 Classic");
+    std::snprintf(FACTORY_KITS[1].name, sizeof(FACTORY_KITS[1].name), "TR-909 Studio");
+    std::snprintf(FACTORY_KITS[2].name, sizeof(FACTORY_KITS[2].name), "TR-707 Digital");
+    std::snprintf(FACTORY_KITS[3].name, sizeof(FACTORY_KITS[3].name), "TR-727 Latin");
+    std::snprintf(FACTORY_KITS[4].name, sizeof(FACTORY_KITS[4].name), "TR-606 Acid");
+    std::snprintf(FACTORY_KITS[84].name, sizeof(FACTORY_KITS[84].name), "CR-78 Vintage");
+    std::snprintf(FACTORY_KITS[86].name, sizeof(FACTORY_KITS[86].name), "FM Hard Techno");
+
+    static const uint16_t k909ChTones[NUM_CHANNELS] = { 27, 29, 30, 31, 32, 36, 37, 38, 39, 40, 41 };
+    static const uint16_t kFMChTones[NUM_CHANNELS]  = { 95, 102, 108, 109, 112, 113, 116, 118, 120, 122, 128 };
+    for (int ch = 0; ch < NUM_CHANNELS; ++ch) {
+        FACTORY_KITS[1].channels[ch].toneId = k909ChTones[ch];
+        FACTORY_KITS[1].channels[ch].revSend = (ch == 1 || ch == 5 || ch == 6 || ch >= 8) ? 95 : 24;
+        FACTORY_KITS[1].channels[ch].dlySend = (ch == 5 || ch == 6 || ch == 7) ? 78 : 18;
+        FACTORY_KITS[86].channels[ch].toneId = kFMChTones[ch];
+        FACTORY_KITS[86].channels[ch].revSend = (ch == 1 || ch == 6 || ch >= 8) ? 115 : 32;
+        FACTORY_KITS[86].channels[ch].dlySend = (ch == 5 || ch == 6 || ch == 7) ? 105 : 28;
+    }
+
+    std::snprintf(FACTORY_PATTERNS[103].code, sizeof(FACTORY_PATTERNS[103].code), "7-08");
+    std::snprintf(FACTORY_PATTERNS[103].name, sizeof(FACTORY_PATTERNS[103].name), "Hard Techno 909");
+    FACTORY_PATTERNS[103].tempoTenths = 1380;
+
+    gFirmwareLoaded = true;
+}
+
 bool RuntimeFirmwareLoader::isFirmwareLoaded() {
     return gFirmwareLoaded;
 }

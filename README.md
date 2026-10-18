@@ -1,8 +1,18 @@
 # REPLICANT TR-8S // 1:1 TR-8S Rhythm Performer Clone (v3.00 Firmware)
 
 <p align="center">
-  <strong>1:1 Hardware & Firmware-Driven Clone of the TR-8S Rhythm Performer (v3.00)</strong><br>
+  <strong>1:1 Hardware & Firmware-Driven Clone of the TR-8S Rhythm Performer (v3.00) with Per-Channel Reverb & Delay and 150 Anti-Saturation Mixer</strong><br>
   <em>Audio Plugin: VST3 • AU • Standalone for Windows, Linux, and macOS</em>
+</p>
+
+<p align="center">
+  <a href="assets/replicant_tr8s_promo_hardtechno_1080p.mp4">
+    <img src="assets/replicant_tr8s_promo_hardtechno_poster.png" alt="Replicant TR-8S — Hard Techno 1080p Promo (Per-Channel Reverb & Delay + 150 Max Mixer)" width="980">
+  </a>
+</p>
+
+<p align="center">
+  <em>▶ Watch the 1080p promo — Hard Techno // Rhythm Performer (English).</em>
 </p>
 
 <p align="center">

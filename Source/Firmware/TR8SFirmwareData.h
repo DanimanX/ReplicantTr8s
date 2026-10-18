@@ -81,6 +81,7 @@ public:
     // Loads tr8s_sys_v300.zip, TR8S_UP.bin, or rpg42_init_param.bin at runtime
     static bool loadFromFile(const juce::File& file, juce::String& errorMsg, bool savePreference = true);
     static bool tryAutoLoadSavedFirmware();
+    static void activateStandalonePreviewMode();
 
 private:
     static bool parseTarArchive(const void* data, size_t size, juce::String& errorMsg);
