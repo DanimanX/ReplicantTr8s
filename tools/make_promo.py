@@ -133,10 +133,10 @@ def build_audio():
            + pad * pad_gain[:, None] * 0.78
            + rain * env_ramp(n, [(0, 1.0), (10, 0.25), (54, 0.25), (60, 0.7), (64, 0.0)])[:, None])
 
-    mix = np.tanh(mix * 1.12) / np.tanh(1.12)
+    mix = np.tanh(mix * 1.05) / np.tanh(1.05)
     peak = np.abs(mix).max()
     if peak > 0:
-        mix *= 0.82 / peak
+        mix *= 0.60 / peak
 
     fade = int(0.6 * SAMPLE_RATE)
     mix[:fade] *= np.linspace(0.0, 1.0, fade)[:, None]
