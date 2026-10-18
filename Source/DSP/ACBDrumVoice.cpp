@@ -107,7 +107,7 @@ void ACBDrumVoice::renderNextSample(float& outL, float& outR) {
         }
     }
 
-    mono *= currentVelocity * levelParam;
+    mono *= currentVelocity * (levelParam * MAX_MIXER_GAIN);
     // Soft analog saturation on hot levels
     mono = std::tanh(mono * 1.15f);
 

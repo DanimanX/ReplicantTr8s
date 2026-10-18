@@ -32,6 +32,8 @@ ReplicantTR8SAudioProcessorEditor::ReplicantTR8SAudioProcessorEditor(ReplicantTR
 
         configureRotaryKnob(strip.tuneKnob, chCol);
         configureRotaryKnob(strip.decayKnob, chCol);
+        configureRotaryKnob(strip.reverbKnob, juce::Colour(0xff1ae5ff).interpolatedWith(chCol, 0.35f));
+        configureRotaryKnob(strip.delayKnob, juce::Colour(0xff38ff9c).interpolatedWith(chCol, 0.35f));
         configureRotaryKnob(strip.ctrlKnob, chCol);
 
         strip.levelFader.setSliderStyle(juce::Slider::LinearVertical);
@@ -40,11 +42,15 @@ ReplicantTR8SAudioProcessorEditor::ReplicantTR8SAudioProcessorEditor(ReplicantTR
 
         addAndMakeVisible(strip.tuneKnob);
         addAndMakeVisible(strip.decayKnob);
+        addAndMakeVisible(strip.reverbKnob);
+        addAndMakeVisible(strip.delayKnob);
         addAndMakeVisible(strip.ctrlKnob);
         addAndMakeVisible(strip.levelFader);
 
         strip.tuneAtt = std::make_unique<SliderAttachment>(apvts, ReplicantTR8SAudioProcessor::getChannelParamId(ch, "TUNE"), strip.tuneKnob);
         strip.decayAtt = std::make_unique<SliderAttachment>(apvts, ReplicantTR8SAudioProcessor::getChannelParamId(ch, "DECAY"), strip.decayKnob);
+        strip.reverbAtt = std::make_unique<SliderAttachment>(apvts, ReplicantTR8SAudioProcessor::getChannelParamId(ch, "REVERB"), strip.reverbKnob);
+        strip.delayAtt = std::make_unique<SliderAttachment>(apvts, ReplicantTR8SAudioProcessor::getChannelParamId(ch, "DELAY"), strip.delayKnob);
         strip.ctrlAtt = std::make_unique<SliderAttachment>(apvts, ReplicantTR8SAudioProcessor::getChannelParamId(ch, "CTRL"), strip.ctrlKnob);
         strip.levelAtt = std::make_unique<SliderAttachment>(apvts, ReplicantTR8SAudioProcessor::getChannelParamId(ch, "LEVEL"), strip.levelFader);
 
@@ -58,6 +64,16 @@ ReplicantTR8SAudioProcessorEditor::ReplicantTR8SAudioProcessorEditor(ReplicantTR
             audioProcessor.getEngine().getVoice(ch).updateSynthWaveformPreview();
             audioProcessor.notifyParameterPopup(chName + " DECAY", juce::String(static_cast<int>(v * 127.0f)), v);
         };
+        strip.reverbKnob.onValueChange = [this, ch, chName]() {
+            float v = static_cast<float>(channelStrips[static_cast<size_t>(ch)].reverbKnob.getValue());
+            audioProcessor.getEngine().setSelectedChannel(ch);
+            audioProcessor.notifyParameterPopup(chName + " REVERB", juce::String(static_cast<int>(std::round(v * 100.0f))) + "%", v);
+        };
+        strip.delayKnob.onValueChange = [this, ch, chName]() {
+            float v = static_cast<float>(channelStrips[static_cast<size_t>(ch)].delayKnob.getValue());
+            audioProcessor.getEngine().setSelectedChannel(ch);
+            audioProcessor.notifyParameterPopup(chName + " DELAY", juce::String(static_cast<int>(std::round(v * 100.0f))) + "%", v);
+        };
         strip.ctrlKnob.onValueChange = [this, ch, chName]() {
             float v = static_cast<float>(channelStrips[static_cast<size_t>(ch)].ctrlKnob.getValue());
             audioProcessor.getEngine().getVoice(ch).updateSynthWaveformPreview();
@@ -65,7 +81,9 @@ ReplicantTR8SAudioProcessorEditor::ReplicantTR8SAudioProcessorEditor(ReplicantTR
         };
         strip.levelFader.onValueChange = [this, ch, chName]() {
             float v = static_cast<float>(channelStrips[static_cast<size_t>(ch)].levelFader.getValue());
-            audioProcessor.notifyParameterPopup(chName + " LEVEL", juce::String(static_cast<int>(v * 255.0f)), v);
+            int level150 = juce::jlimit(0, ReplicantTR8S::ACBDrumVoice::MAX_MIXER_LEVEL,
+                                        static_cast<int>(std::round(v * static_cast<float>(ReplicantTR8S::ACBDrumVoice::MAX_MIXER_LEVEL))));
+            audioProcessor.notifyParameterPopup(chName + " LEVEL", juce::String(level150) + " / 150", v);
         };
 
         // Mute Button
@@ -507,18 +525,23 @@ void ReplicantTR8SAudioProcessorEditor::resized() {
         strip.stripBounds = juce::Rectangle<int>(sx, 212, stripW - 4, 374);
 
         int cx = sx + (stripW - 4) / 2;
-        strip.tuneKnob.setBounds(cx - 25, 232, 50, 50);
-        strip.decayKnob.setBounds(cx - 25, 294, 50, 50);
-        strip.ctrlKnob.setBounds(cx - 25, 356, 50, 50);
+        strip.tuneKnob.setBounds(cx - 22, 230, 44, 44);
+        strip.decayKnob.setBounds(cx - 22, 283, 44, 44);
+
+        // Per-channel REVERB and DELAY controls positioned between DECAY and CTRL
+        strip.reverbKnob.setBounds(sx + 9, 336, 40, 40);
+        strip.delayKnob.setBounds(sx + 58, 336, 40, 40);
+
+        strip.ctrlKnob.setBounds(cx - 22, 388, 44, 44);
 
         // Left column inside strip: MUTE, SOLO, SMP buttons
         int btnX = sx + 8;
-        strip.muteBtn.setBounds(btnX, 422, 36, 24);
-        strip.soloBtn.setBounds(btnX, 452, 36, 24);
-        strip.sampleBtn.setBounds(btnX, 482, 36, 24);
+        strip.muteBtn.setBounds(btnX, 445, 36, 23);
+        strip.soloBtn.setBounds(btnX, 472, 36, 23);
+        strip.sampleBtn.setBounds(btnX, 499, 36, 23);
 
-        // Right column inside strip: Illuminated Vertical Level Fader
-        strip.levelFader.setBounds(sx + 48, 416, 54, 118);
+        // Right column inside strip: Illuminated Vertical Level Fader (max 150)
+        strip.levelFader.setBounds(sx + 48, 442, 54, 84);
 
         // Bottom of strip: Instrument Select & Trigger Pad
         strip.instPadBtn.setBounds(sx + 8, 540, stripW - 20, 38);
@@ -621,7 +644,7 @@ void ReplicantTR8SAudioProcessorEditor::paint(juce::Graphics& g) {
     g.setFont(juce::Font(juce::FontOptions(10.5f, juce::Font::plain)));
     g.setColour(juce::Colour(0xff84f5ff));
     g.drawText("> Drag & Drop WAV/AIFF/FLAC/MP3 onto any channel or LCD", 928, 138, 316, 16, juce::Justification::centredLeft, false);
-    g.drawText("> Click [SMP] on any strip to load custom sample", 928, 154, 316, 16, juce::Justification::centredLeft, false);
+    g.drawText("> Per-Channel REVERB & DELAY + Max 150 Anti-Clip Fader", 928, 154, 316, 16, juce::Justification::centredLeft, false);
     g.drawText("> Step Pads: Click = On/Off | Right-Click/Shift = Flam", 928, 170, 316, 16, juce::Justification::centredLeft, false);
 
     // 5. Draw 11 Channel Strips Framing & Labels
@@ -638,31 +661,47 @@ void ReplicantTR8SAudioProcessorEditor::paint(juce::Graphics& g) {
         g.setColour(isSel ? chCol : juce::Colour(0xff28303a));
         g.drawRoundedRectangle(sb, 4.5f, isSel ? 1.8f : 1.0f);
 
-        // Top channel color banner + activity LED
+        // Top channel color banner + mixer level readout (0..150) + activity LED
         g.setColour(chCol.withAlpha(0.85f));
         g.fillRoundedRectangle(sb.getX() + 4.0f, sb.getY() + 4.0f, sb.getWidth() - 8.0f, 16.0f, 2.5f);
+
+        const auto& voice = eng.getVoice(ch);
+        int chLevel150 = juce::jlimit(0, ReplicantTR8S::ACBDrumVoice::MAX_MIXER_LEVEL,
+                                      static_cast<int>(std::round(voice.getLevel() * static_cast<float>(ReplicantTR8S::ACBDrumVoice::MAX_MIXER_LEVEL))));
 
         g.setFont(juce::Font(juce::FontOptions(11.0f, juce::Font::bold)));
         g.setColour(juce::Colours::black);
         g.drawText(TR8SFirmware::CHANNEL_NAMES[ch],
                    static_cast<int>(sb.getX() + 8), static_cast<int>(sb.getY() + 4),
-                   40, 16, juce::Justification::centredLeft, false);
+                   30, 16, juce::Justification::centredLeft, false);
+
+        g.setFont(juce::Font(juce::FontOptions(9.0f, juce::Font::bold)));
+        g.setColour(juce::Colours::black.withAlpha(0.82f));
+        g.drawText("LVL " + juce::String(chLevel150),
+                   static_cast<int>(sb.getX() + 34), static_cast<int>(sb.getY() + 4),
+                   52, 16, juce::Justification::centred, false);
 
         // Activity peak LED on channel header
-        float peak = eng.getVoice(ch).getRecentPeak();
+        float peak = voice.getRecentPeak();
         juce::Rectangle<float> ledDot(sb.getRight() - 16.0f, sb.getY() + 7.0f, 9.0f, 9.0f);
         g.setColour(peak > 0.05f ? juce::Colours::white.interpolatedWith(chCol, 0.3f) : juce::Colour(0xff222830));
         g.fillEllipse(ledDot);
 
-        // Knob labels inside strip
-        g.setFont(juce::Font(juce::FontOptions(9.0f, juce::Font::bold)));
+        // Knob labels inside strip (TUNE -> DECAY -> REVERB / DELAY -> CTRL)
+        g.setFont(juce::Font(juce::FontOptions(8.5f, juce::Font::bold)));
         g.setColour(juce::Colour(0xff9aa6b4));
-        g.drawText("TUNE", static_cast<int>(sb.getX()), 280, static_cast<int>(sb.getWidth()), 11, juce::Justification::centred, false);
-        g.drawText("DECAY", static_cast<int>(sb.getX()), 342, static_cast<int>(sb.getWidth()), 11, juce::Justification::centred, false);
-        g.drawText("CTRL", static_cast<int>(sb.getX()), 404, static_cast<int>(sb.getWidth()), 11, juce::Justification::centred, false);
+        g.drawText("TUNE", static_cast<int>(sb.getX()), 272, static_cast<int>(sb.getWidth()), 11, juce::Justification::centred, false);
+        g.drawText("DECAY", static_cast<int>(sb.getX()), 325, static_cast<int>(sb.getWidth()), 11, juce::Justification::centred, false);
+
+        g.setColour(juce::Colour(0xff7eeeff));
+        g.drawText("REVERB", static_cast<int>(sb.getX() + 4), 375, 50, 11, juce::Justification::centred, false);
+        g.setColour(juce::Colour(0xff68ffb8));
+        g.drawText("DELAY", static_cast<int>(sb.getX() + 53), 375, 50, 11, juce::Justification::centred, false);
+
+        g.setColour(juce::Colour(0xff9aa6b4));
+        g.drawText("CTRL", static_cast<int>(sb.getX()), 430, static_cast<int>(sb.getWidth()), 11, juce::Justification::centred, false);
 
         // Tone/Sample short label above trigger pad
-        const auto& voice = eng.getVoice(ch);
         juce::String shortTone = voice.hasCustomSample()
             ? ("[U] " + voice.getCustomSampleName())
             : juce::String(TR8SFirmware::FACTORY_TONES[voice.getToneId()].name);

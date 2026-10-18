@@ -36,10 +36,10 @@ private:
     double sampleRate = 44100.0;
     double currentBpm = 128.0;
 
-    float reverbLevel = 0.25f;
-    float delayLevel = 0.20f;
+    float reverbLevel = 0.50f;
+    float delayLevel = 0.45f;
     float masterFilter = 0.5f;
-    float masterDrive = 0.15f;
+    float masterDrive = 0.10f;
     float masterVolume = 0.85f;
 
     bool scatterActive = false;

@@ -263,31 +263,34 @@ void TR8SDisplayComponent::paint(juce::Graphics& g) {
 
     leftPane.removeFromTop(3.0f);
 
-    // Parameter Bar Graphs (TUNE, DECAY, CTRL, LEVEL, PAN)
+    // Parameter Bar Graphs (TUNE, DECAY, REV, DLY, CTRL, LEVEL 0..150)
     struct ParamBar { const char* name; float val; juce::String text; };
     float semi = (voice.getTune() - 0.5f) * 24.0f;
-    std::array<ParamBar, 5> bars = {{
-        { "TUNE",  voice.getTune(),  juce::String::formatted("%+.1f st", semi) },
-        { "DECAY", voice.getDecay(), juce::String::formatted("%d", static_cast<int>(voice.getDecay() * 127.0f)) },
-        { "CTRL",  voice.getCtrl(),  juce::String::formatted("%d", static_cast<int>(voice.getCtrl() * 127.0f)) },
-        { "LEVEL", voice.getLevel(), juce::String::formatted("%d", static_cast<int>(voice.getLevel() * 255.0f)) },
-        { "PAN",   voice.getPan(),   std::abs(voice.getPan() - 0.5f) < 0.03f ? "CTR" :
-                                     (voice.getPan() < 0.5f ? juce::String::formatted("L%d", static_cast<int>((0.5f - voice.getPan()) * 128.0f))
-                                                            : juce::String::formatted("R%d", static_cast<int>((voice.getPan() - 0.5f) * 128.0f))) }
+    float revVal = engine.getChannelReverbSend(selCh);
+    float dlyVal = engine.getChannelDelaySend(selCh);
+    int lvl150 = juce::jlimit(0, ACBDrumVoice::MAX_MIXER_LEVEL,
+                              static_cast<int>(std::round(voice.getLevel() * static_cast<float>(ACBDrumVoice::MAX_MIXER_LEVEL))));
+    std::array<ParamBar, 6> bars = {{
+        { "TUNE",  voice.getTune(),  juce::String::formatted("%+.1f", semi) },
+        { "DECAY", voice.getDecay(), juce::String::formatted("%d", static_cast<int>(std::round(voice.getDecay() * 127.0f))) },
+        { "REV",   revVal,           juce::String::formatted("%d%%", static_cast<int>(std::round(revVal * 100.0f))) },
+        { "DLY",   dlyVal,           juce::String::formatted("%d%%", static_cast<int>(std::round(dlyVal * 100.0f))) },
+        { "CTRL",  voice.getCtrl(),  juce::String::formatted("%d", static_cast<int>(std::round(voice.getCtrl() * 127.0f))) },
+        { "LEVEL", voice.getLevel(), juce::String::formatted("%d", lvl150) }
     }};
 
-    float barW = leftPane.getWidth() / 5.0f;
+    float barW = leftPane.getWidth() / static_cast<float>(bars.size());
     for (size_t i = 0; i < bars.size(); ++i) {
-        auto slot = leftPane.removeFromLeft(barW).reduced(2.0f, 0.0f);
-        g.setColour(juce::Colour(0xff7ec8e3));
-        g.setFont(juce::Font(juce::FontOptions(9.5f, juce::Font::bold)));
+        auto slot = leftPane.removeFromLeft(barW).reduced(1.5f, 0.0f);
+        g.setColour((i == 2 || i == 3) ? juce::Colour(0xff68ffb8) : juce::Colour(0xff7ec8e3));
+        g.setFont(juce::Font(juce::FontOptions(9.0f, juce::Font::bold)));
         g.drawText(bars[i].name, slot.removeFromTop(11.0f), juce::Justification::centred, false);
 
         auto valLabel = slot.removeFromBottom(11.0f);
         g.setColour(juce::Colour(0xffd8faff));
         g.drawText(bars[i].text, valLabel, juce::Justification::centred, false);
 
-        auto meterRect = slot.reduced(6.0f, 1.0f);
+        auto meterRect = slot.reduced(5.0f, 1.0f);
         g.setColour(juce::Colour(0xff0b2330));
         g.fillRoundedRectangle(meterRect, 2.0f);
         float fh = meterRect.getHeight() * juce::jlimit(0.0f, 1.0f, bars[i].val);

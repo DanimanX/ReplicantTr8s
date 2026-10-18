@@ -17,11 +17,11 @@ void MasterBusProcessor::prepare(double newSampleRate, int /*maxBlockSize*/) {
 
     reverb.setSampleRate(sampleRate);
     juce::Reverb::Parameters revParams;
-    revParams.roomSize = 0.62f;
-    revParams.damping = 0.42f;
+    revParams.roomSize = 0.68f;
+    revParams.damping = 0.36f;
     revParams.wetLevel = 1.0f;
     revParams.dryLevel = 0.0f;
-    revParams.width = 0.92f;
+    revParams.width = 0.96f;
     reverb.setParameters(revParams);
 
     setTempoBpm(currentBpm);
@@ -51,7 +51,7 @@ void MasterBusProcessor::processFrame(float& mainL, float& mainR,
                                       float revSendL, float revSendR,
                                       float dlySendL, float dlySendR,
                                       int currentStep) {
-    // 1. Stereo Tempo-Synced Delay
+    // 1. Stereo Tempo-Synced Delay (responds to per-channel DELAY send & Master Delay)
     if (!delayBufL.empty()) {
         int bufSize = static_cast<int>(delayBufL.size());
         int readPosL = (delayWritePos - delaySamples + bufSize) % bufSize;
@@ -60,22 +60,24 @@ void MasterBusProcessor::processFrame(float& mainL, float& mainR,
         float dlyL = delayBufL[static_cast<size_t>(readPosL)];
         float dlyR = delayBufR[static_cast<size_t>(readPosR)];
 
-        float feedback = 0.38f + delayLevel * 0.25f;
+        float feedback = 0.36f + delayLevel * 0.28f;
         delayBufL[static_cast<size_t>(delayWritePos)] = std::tanh(dlySendL + dlyR * feedback);
         delayBufR[static_cast<size_t>(delayWritePos)] = std::tanh(dlySendR + dlyL * feedback);
         delayWritePos = (delayWritePos + 1) % bufSize;
 
-        mainL += dlyL * delayLevel * 0.85f;
-        mainR += dlyR * delayLevel * 0.85f;
+        float dlyGain = (delayLevel > 0.002f) ? (0.35f + delayLevel * 0.75f) : 0.0f;
+        mainL += dlyL * dlyGain;
+        mainR += dlyR * dlyGain;
     }
 
-    // 2. Stereo Reverb
-    if (reverbLevel > 0.005f) {
+    // 2. Stereo Reverb (responds to per-channel REVERB send & Master Reverb)
+    if (reverbLevel > 0.002f) {
         float rl = revSendL;
         float rr = revSendR;
         reverb.processStereo(&rl, &rr, 1);
-        mainL += rl * reverbLevel * 0.9f;
-        mainR += rr * reverbLevel * 0.9f;
+        float revGain = 0.35f + reverbLevel * 0.85f;
+        mainL += rl * revGain;
+        mainR += rr * revGain;
     }
 
     // 3. AIRA SCATTER Performance Effect

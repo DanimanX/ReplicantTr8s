@@ -23,6 +23,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout ReplicantTR8SAudioProcessor:
 
     for (int ch = 0; ch < TR8SFirmware::NUM_CHANNELS; ++ch) {
         juce::String chName = TR8SFirmware::CHANNEL_NAMES[ch];
+        float defaultRev = (ch == 1 || ch == 5 || ch == 6 || ch >= 8) ? 0.30f : 0.08f;
+        float defaultDly = (ch == 5 || ch == 6 || ch == 7) ? 0.22f : 0.05f;
+
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             juce::ParameterID{ getChannelParamId(ch, "TUNE"), 1 },
             chName + " Tune",
@@ -34,15 +37,25 @@ juce::AudioProcessorValueTreeState::ParameterLayout ReplicantTR8SAudioProcessor:
             juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f),
             0.5f));
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID{ getChannelParamId(ch, "REVERB"), 1 },
+            chName + " Reverb",
+            juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f),
+            defaultRev));
+        params.push_back(std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID{ getChannelParamId(ch, "DELAY"), 1 },
+            chName + " Delay",
+            juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f),
+            defaultDly));
+        params.push_back(std::make_unique<juce::AudioParameterFloat>(
             juce::ParameterID{ getChannelParamId(ch, "CTRL"), 1 },
             chName + " Ctrl",
             juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f),
             0.5f));
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             juce::ParameterID{ getChannelParamId(ch, "LEVEL"), 1 },
-            chName + " Level",
+            chName + " Level (0-150)",
             juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f),
-            0.85f));
+            1.0f));
     }
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -53,16 +66,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout ReplicantTR8SAudioProcessor:
         juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.65f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{ "REVERB_LEVEL", 1 }, "Reverb Level",
-        juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.25f));
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.50f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{ "DELAY_LEVEL", 1 }, "Delay Level",
-        juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.20f));
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.45f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{ "MASTER_FILTER", 1 }, "Master Filter (LPF/HPF)",
         juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.50f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{ "MASTER_DRIVE", 1 }, "Master Drive",
-        juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.15f));
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.10f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{ "TEMPO_BPM", 1 }, "Tempo BPM",
         juce::NormalisableRange<float>(40.0f, 300.0f, 0.1f), 128.0f));
@@ -84,6 +97,10 @@ void ReplicantTR8SAudioProcessor::syncParametersFromEngineKit() {
             p->setValueNotifyingHost(v.getTune());
         if (auto* p = apvts.getParameter(getChannelParamId(ch, "DECAY")))
             p->setValueNotifyingHost(v.getDecay());
+        if (auto* p = apvts.getParameter(getChannelParamId(ch, "REVERB")))
+            p->setValueNotifyingHost(engine.getChannelReverbSend(ch));
+        if (auto* p = apvts.getParameter(getChannelParamId(ch, "DELAY")))
+            p->setValueNotifyingHost(engine.getChannelDelaySend(ch));
         if (auto* p = apvts.getParameter(getChannelParamId(ch, "CTRL")))
             p->setValueNotifyingHost(v.getCtrl());
         if (auto* p = apvts.getParameter(getChannelParamId(ch, "LEVEL")))
@@ -102,6 +119,8 @@ void ReplicantTR8SAudioProcessor::pushParametersToEngine() {
         auto& v = engine.getVoice(ch);
         v.setTune(apvts.getRawParameterValue(getChannelParamId(ch, "TUNE"))->load());
         v.setDecay(apvts.getRawParameterValue(getChannelParamId(ch, "DECAY"))->load());
+        engine.setChannelReverbSend(ch, apvts.getRawParameterValue(getChannelParamId(ch, "REVERB"))->load());
+        engine.setChannelDelaySend(ch, apvts.getRawParameterValue(getChannelParamId(ch, "DELAY"))->load());
         v.setCtrl(apvts.getRawParameterValue(getChannelParamId(ch, "CTRL"))->load());
         v.setLevel(apvts.getRawParameterValue(getChannelParamId(ch, "LEVEL"))->load());
     }

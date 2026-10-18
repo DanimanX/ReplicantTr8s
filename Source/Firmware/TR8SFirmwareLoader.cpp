@@ -105,7 +105,7 @@ void RuntimeFirmwareLoader::initializeCleanDefaults() {
             cp.toneId = kDefaultChTones[ch];
             cp.tune = 128;
             cp.decay = 128;
-            cp.level = 230;
+            cp.level = 150;
             cp.gain = 81;
             cp.pan = 128;
             cp.revSend = 20;
@@ -266,7 +266,7 @@ bool RuntimeFirmwareLoader::parseInitParamBin(const uint8_t* data, size_t size, 
             cp.toneId  = (tid < NUM_TONES) ? tid : 0;
             cp.tune    = slot[2];
             cp.decay   = slot[3];
-            cp.level   = slot[4];
+            cp.level   = 150;
             cp.gain    = slot[5];
             cp.pan     = slot[6];
             cp.revSend = slot[7];

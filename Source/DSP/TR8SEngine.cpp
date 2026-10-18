@@ -54,13 +54,13 @@ void TR8SEngine::loadFactoryKit(int kitIndex0Based) {
         v.setToneId(preset.toneId);
         v.setTune(static_cast<float>(preset.tune) / 255.0f);
         v.setDecay(static_cast<float>(preset.decay) / 255.0f);
-        v.setLevel(juce::jlimit(0.15f, 1.0f, static_cast<float>(preset.level) / 255.0f));
+        v.setLevel(1.0f); // Always start at max mixer level (150)
         v.setPan(static_cast<float>(preset.pan) / 255.0f);
         v.setCtrl(static_cast<float>(preset.ctrl) / 255.0f);
         v.updateSynthWaveformPreview();
 
-        channelRevSend[static_cast<size_t>(ch)] = static_cast<float>(preset.revSend) / 255.0f * 0.5f;
-        channelDlySend[static_cast<size_t>(ch)] = static_cast<float>(preset.dlySend) / 255.0f * 0.4f;
+        channelRevSend[static_cast<size_t>(ch)] = juce::jlimit(0.0f, 1.0f, static_cast<float>(preset.revSend) / 255.0f);
+        channelDlySend[static_cast<size_t>(ch)] = juce::jlimit(0.0f, 1.0f, static_cast<float>(preset.dlySend) / 255.0f);
     }
 
     if (onKitLoaded)

@@ -33,11 +33,15 @@ private:
     struct ChannelStripControls {
         juce::Slider tuneKnob;
         juce::Slider decayKnob;
+        juce::Slider reverbKnob;
+        juce::Slider delayKnob;
         juce::Slider ctrlKnob;
         juce::Slider levelFader;
 
         std::unique_ptr<SliderAttachment> tuneAtt;
         std::unique_ptr<SliderAttachment> decayAtt;
+        std::unique_ptr<SliderAttachment> reverbAtt;
+        std::unique_ptr<SliderAttachment> delayAtt;
         std::unique_ptr<SliderAttachment> ctrlAtt;
         std::unique_ptr<SliderAttachment> levelAtt;
 

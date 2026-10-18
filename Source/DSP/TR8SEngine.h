@@ -83,10 +83,10 @@ public:
     void setChannelSolo(int ch, bool soloed) { channelSoloed[static_cast<size_t>(ch)] = soloed; }
     bool isChannelSoloed(int ch) const { return channelSoloed[static_cast<size_t>(ch)]; }
 
-    void setChannelReverbSend(int ch, float send) { channelRevSend[static_cast<size_t>(ch)] = send; }
-    float getChannelReverbSend(int ch) const { return channelRevSend[static_cast<size_t>(ch)]; }
-    void setChannelDelaySend(int ch, float send) { channelDlySend[static_cast<size_t>(ch)] = send; }
-    float getChannelDelaySend(int ch) const { return channelDlySend[static_cast<size_t>(ch)]; }
+    void setChannelReverbSend(int ch, float send) { channelRevSend[static_cast<size_t>(juce::jlimit(0, NUM_CHANNELS - 1, ch))] = juce::jlimit(0.0f, 1.0f, send); }
+    float getChannelReverbSend(int ch) const { return channelRevSend[static_cast<size_t>(juce::jlimit(0, NUM_CHANNELS - 1, ch))]; }
+    void setChannelDelaySend(int ch, float send) { channelDlySend[static_cast<size_t>(juce::jlimit(0, NUM_CHANNELS - 1, ch))] = juce::jlimit(0.0f, 1.0f, send); }
+    float getChannelDelaySend(int ch) const { return channelDlySend[static_cast<size_t>(juce::jlimit(0, NUM_CHANNELS - 1, ch))]; }
 
     // Fill-In Trigger
     void triggerFillIn() { fillInActive = !fillInActive; }

@@ -12,6 +12,9 @@ namespace ReplicantTR8S {
 
 class ACBDrumVoice {
 public:
+    static constexpr int MAX_MIXER_LEVEL = 150;
+    static constexpr float MAX_MIXER_GAIN = 150.0f / 255.0f;
+
     ACBDrumVoice();
     ~ACBDrumVoice() = default;
 
@@ -30,11 +33,11 @@ public:
     void setToneId(uint16_t id);
     uint16_t getToneId() const { return currentToneId; }
 
-    void setTune(float normTune) { tuneParam = normTune; }       // 0..1 (0.5 = center)
-    void setDecay(float normDecay) { decayParam = normDecay; }   // 0..1 (0.5 = nominal)
-    void setCtrl(float normCtrl) { ctrlParam = normCtrl; }       // 0..1 (0.5 = nominal)
-    void setLevel(float normLevel) { levelParam = normLevel; }   // 0..1
-    void setPan(float normPan) { panParam = normPan; }           // 0..1 (0.5 = center)
+    void setTune(float normTune) { tuneParam = juce::jlimit(0.0f, 1.0f, normTune); }       // 0..1 (0.5 = center)
+    void setDecay(float normDecay) { decayParam = juce::jlimit(0.0f, 1.0f, normDecay); }   // 0..1 (0.5 = nominal)
+    void setCtrl(float normCtrl) { ctrlParam = juce::jlimit(0.0f, 1.0f, normCtrl); }       // 0..1 (0.5 = nominal)
+    void setLevel(float normLevel) { levelParam = juce::jlimit(0.0f, 1.0f, normLevel); }   // 0..1 (1.0 = max 150)
+    void setPan(float normPan) { panParam = juce::jlimit(0.0f, 1.0f, normPan); }           // 0..1 (0.5 = center)
 
     float getTune() const { return tuneParam; }
     float getDecay() const { return decayParam; }
@@ -80,11 +83,11 @@ private:
     uint16_t currentToneId = 0;
     double sampleRate = 44100.0;
 
-    // Normalized parameters (0.0 .. 1.0)
+    // Normalized parameters (0.0 .. 1.0; levelParam 1.0 corresponds to max 150)
     float tuneParam = 0.5f;
     float decayParam = 0.5f;
     float ctrlParam = 0.5f;
-    float levelParam = 0.85f;
+    float levelParam = 1.0f;
     float panParam = 0.5f;
 
     // Voice runtime state

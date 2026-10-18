@@ -37,7 +37,7 @@ struct FirmwareChannelPreset {
     uint16_t toneId = 0;
     uint8_t tune = 128;     // 0..255 (128 = center)
     uint8_t decay = 128;    // 0..255 (128 = nominal)
-    uint8_t level = 220;    // 0..255
+    uint8_t level = 150;    // 0..150 (max mixer ceiling to prevent saturation)
     uint8_t gain = 81;      // 0..255 (81 = nominal)
     uint8_t pan = 128;      // 0..255 (128 = center)
     uint8_t revSend = 0;    // 0..255
