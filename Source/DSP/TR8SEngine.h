@@ -62,7 +62,7 @@ public:
 
     // Transport
     void setPlaying(bool play);
-    bool isPlaying() const { return internalPlaying.load(std::memory_order_relaxed) || hostTransportPlaying.load(std::memory_order_relaxed); }
+    bool isPlaying() const { return internalPlaying.load(std::memory_order_relaxed); }
     void setTempoBpm(double bpm);
     double getTempoBpm() const { return tempoBpm; }
     void setShuffle(float normShuffle) { shuffleParam = juce::jlimit(-0.5f, 0.5f, normShuffle); }

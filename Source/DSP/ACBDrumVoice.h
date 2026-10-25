@@ -97,11 +97,15 @@ private:
     float phase1 = 0.0f;
     float phase2 = 0.0f;
     float phase3 = 0.0f;
+    float phase4 = 0.0f;
     std::array<float, 6> metalPhases { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
-    // Filter state variables (SVF)
+    // Filter state variables (Multi-Stage SVF + S&H DAC + DC Blocker)
     float svfLp1 = 0.0f, svfBp1 = 0.0f;
     float svfLp2 = 0.0f, svfBp2 = 0.0f;
+    float svfLp3 = 0.0f, svfBp3 = 0.0f;
+    float snhPhase = 0.0f, snhHeld = 0.0f;
+    float dcBlockX = 0.0f, dcBlockY = 0.0f;
     float chokeGain = 1.0f;
     bool choking = false;
 

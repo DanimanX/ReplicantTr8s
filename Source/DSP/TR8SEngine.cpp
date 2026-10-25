@@ -12,8 +12,8 @@ TR8SEngine::TR8SEngine() {
         voices[static_cast<size_t>(ch)].setChannelIndex(ch);
         channelMuted[static_cast<size_t>(ch)] = false;
         channelSoloed[static_cast<size_t>(ch)] = false;
-        channelRevSend[static_cast<size_t>(ch)] = (ch == 1 || ch == 5 || ch == 6 || ch >= 8) ? 0.32f : 0.05f;
-        channelDlySend[static_cast<size_t>(ch)] = (ch == 5 || ch == 6 || ch == 7) ? 0.22f : 0.02f;
+        channelRevSend[static_cast<size_t>(ch)] = 0.0f;
+        channelDlySend[static_cast<size_t>(ch)] = 0.0f;
     }
 
     loadFactoryPattern(103, false);
@@ -180,9 +180,8 @@ void TR8SEngine::toggleStep(int channelOrAccent, int step, bool withFlam, bool w
 void TR8SEngine::setPlaying(bool play) {
     bool wasPlaying = internalPlaying.exchange(play, std::memory_order_relaxed);
     if (!play) {
-        hostTransportPlaying.store(false, std::memory_order_relaxed);
         sampleCounterInStep = 0.0;
-    } else if (play && !wasPlaying && !hostTransportPlaying.load(std::memory_order_relaxed)) {
+    } else if (play && !wasPlaying) {
         playheadStep.store(0, std::memory_order_relaxed);
         sampleCounterInStep = 0.0;
         if (isFirmwareLoaded())
@@ -266,64 +265,83 @@ void TR8SEngine::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer
         setTempoBpm(hostBpm);
     }
 
-    // Process incoming MIDI notes (GM Drum Map + Chromatic C1..B1)
+    int numSamples = buffer.getNumSamples();
+    if (numSamples <= 0)
+        return;
+
+    // Collect incoming MIDI NoteOn events with sample-accurate offsets.
+    // Sending MIDI notes from a DAW NEVER activates the internal step sequencer;
+    // only the triggered MIDI notes will sound.
+    struct MidiTrigEvent {
+        int sampleOffset;
+        int channel;
+        float velocity;
+    };
+    std::array<MidiTrigEvent, 128> midiEvents {};
+    int numMidiEvents = 0;
+
     for (const auto metadata : midiMessages) {
         const auto msg = metadata.getMessage();
-        if (msg.isNoteOn()) {
+        if (msg.isNoteOn() && msg.getVelocity() > 0) {
             int note = msg.getNoteNumber();
             float vel = msg.getFloatVelocity();
             int ch = -1;
             switch (note) {
-                case 35: case 36: ch = 0; break; // BD
-                case 38: case 40: ch = 1; break; // SD
-                case 41: case 43: ch = 2; break; // LT
-                case 45: case 47: ch = 3; break; // MT
-                case 48: case 50: ch = 4; break; // HT
-                case 37: case 75: ch = 5; break; // RS
-                case 39:          ch = 6; break; // HC
-                case 42: case 44: ch = 7; break; // CH
-                case 46:          ch = 8; break; // OH
-                case 49: case 57: ch = 9; break; // CC
-                case 51: case 56: ch = 10; break; // RC
+                case 35: case 36:          ch = 0; break;  // BD (Bass Drum)
+                case 38: case 40:          ch = 1; break;  // SD (Snare Drum)
+                case 41: case 43:          ch = 2; break;  // LT (Low Tom)
+                case 45: case 47:          ch = 3; break;  // MT (Mid Tom)
+                case 48: case 50:          ch = 4; break;  // HT (High Tom)
+                case 37: case 75:          ch = 5; break;  // RS (Rim Shot / Claves)
+                case 39: case 54:          ch = 6; break;  // HC (Hand Clap / Tambourine)
+                case 42: case 44:          ch = 7; break;  // CH (Closed / Pedal Hi-Hat)
+                case 46: case 55:          ch = 8; break;  // OH (Open Hi-Hat)
+                case 49: case 52: case 57: ch = 9; break;  // CC (Crash Cymbal)
+                case 51: case 53: case 56: case 59: ch = 10; break; // RC (Ride Cymbal / Cowbell)
                 default:
                     if (note >= 60 && note < 60 + NUM_CHANNELS)
                         ch = note - 60;
+                    else if (note >= 24 && note < 24 + NUM_CHANNELS)
+                        ch = note - 24;
                     break;
             }
-            if (ch >= 0 && ch < NUM_CHANNELS && isChannelAudible(ch)) {
-                triggerChannel(ch, vel, false);
+            if (ch >= 0 && ch < NUM_CHANNELS && isChannelAudible(ch) && numMidiEvents < static_cast<int>(midiEvents.size())) {
+                int offset = juce::jlimit(0, numSamples - 1, metadata.samplePosition);
+                midiEvents[static_cast<size_t>(numMidiEvents++)] = MidiTrigEvent{ offset, ch, vel };
             }
         }
     }
 
-    // Detect DAW Host Transport Start / Stop transitions
+    // Track DAW Host Transport state, but NEVER auto-start the internal step sequencer.
+    // The step sequencer only runs when explicitly started via START/STOP (internalPlaying == true).
     hostTransportPlaying.store(hostIsPlaying, std::memory_order_relaxed);
-    if (hostIsPlaying && !wasHostPlaying) {
+    if (hostIsPlaying && !wasHostPlaying && internalPlaying.load(std::memory_order_relaxed)) {
         int startStep = 0;
         if (hostPpqPosition >= 0.0) {
             startStep = static_cast<int>(std::floor(hostPpqPosition * 4.0)) & (NUM_STEPS - 1);
         }
         playheadStep.store(startStep, std::memory_order_relaxed);
         sampleCounterInStep = 0.0;
-        if (isFirmwareLoaded())
-            advanceSequencerStep(startStep);
     } else if (!hostIsPlaying && wasHostPlaying) {
-        // When DAW pauses/stops, stop internal playback as well so it doesn't keep running on its own
-        internalPlaying.store(false, std::memory_order_relaxed);
         sampleCounterInStep = 0.0;
     }
     wasHostPlaying = hostIsPlaying;
 
-    int numSamples = buffer.getNumSamples();
     float* outL = buffer.getWritePointer(0);
     float* outR = buffer.getNumChannels() > 1 ? buffer.getWritePointer(1) : outL;
 
-    bool running = isFirmwareLoaded() && (internalPlaying.load(std::memory_order_relaxed) || hostIsPlaying);
+    bool running = isFirmwareLoaded() && internalPlaying.load(std::memory_order_relaxed);
     double baseSamplesPerStep = (60.0 / tempoBpm) * 0.25 * sampleRate;
 
     int sWrite = scopeWriteIdx.load(std::memory_order_relaxed);
+    int midiEventIdx = 0;
 
     for (int i = 0; i < numSamples; ++i) {
+        while (midiEventIdx < numMidiEvents && midiEvents[static_cast<size_t>(midiEventIdx)].sampleOffset == i) {
+            const auto& ev = midiEvents[static_cast<size_t>(midiEventIdx++)];
+            triggerChannel(ev.channel, ev.velocity, false);
+        }
+
         if (running) {
             int curStep = playheadStep.load(std::memory_order_relaxed);
             double swingFactor = (curStep & 1) ? (1.0 - shuffleParam * 0.45) : (1.0 + shuffleParam * 0.45);

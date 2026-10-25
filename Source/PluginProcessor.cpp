@@ -23,8 +23,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout ReplicantTR8SAudioProcessor:
 
     for (int ch = 0; ch < TR8SFirmware::NUM_CHANNELS; ++ch) {
         juce::String chName = TR8SFirmware::CHANNEL_NAMES[ch];
-        float defaultRev = (ch == 1 || ch == 5 || ch == 6 || ch >= 8) ? 0.30f : 0.08f;
-        float defaultDly = (ch == 5 || ch == 6 || ch == 7) ? 0.22f : 0.05f;
+        float defaultRev = 0.0f;
+        float defaultDly = 0.0f;
 
         params.push_back(std::make_unique<juce::AudioParameterFloat>(
             juce::ParameterID{ getChannelParamId(ch, "TUNE"), 1 },

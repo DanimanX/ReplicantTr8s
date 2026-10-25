@@ -84,6 +84,60 @@ void copyTrimmedAscii(char* dst, size_t dstCap, const uint8_t* src, size_t srcLe
 
 } // namespace
 
+static const FMOrCR78ToneMeta kBasePreviewTones[] = {
+    {0, "808 Bass 1", 1, 1},      {1, "808 Bass 2", 1, 1},      {2, "808 Bass 1 Long", 1, 1},
+    {3, "808 Bass 2 Long", 1, 1}, {4, "808 Snare 1", 2, 1},     {5, "808 Snare 2", 2, 1},
+    {6, "808 Low Tom", 3, 1},     {7, "808 Mid Tom", 3, 1},     {8, "808 High Tom", 3, 1},
+    {9, "808 Low Conga", 8, 1},   {10, "808 Mid Conga", 8, 1},  {11, "808 High Conga", 8, 1},
+    {12, "808 Noise Tom L", 3, 1},{13, "808 Noise Tom M", 3, 1},{14, "808 Noise Tom H", 3, 1},
+    {15, "808 Rim Shot", 4, 1},   {16, "808 Claves", 9, 1},     {17, "808 Hand Clap", 5, 1},
+    {18, "808 Maracas", 10, 1},   {19, "808 Finger Snap", 5, 1},{20, "808 Noise Clap", 5, 1},
+    {21, "808 Closed HH", 6, 1},  {22, "808 Open HH", 6, 1},    {23, "808 Cymbal", 7, 1},
+    {24, "808 Gate Cymbal", 7, 1},{25, "808 Cowbell", 11, 1},
+    {26, "909 Bass 1", 1, 1},     {27, "909 Bass 2", 1, 1},     {28, "909 Attack Bass", 1, 1},
+    {29, "909 Low Bass", 1, 1},   {30, "909 Snare 1", 2, 1},    {31, "909 Snare 2", 2, 1},
+    {32, "909 Attack Snare", 2, 1},{33, "909 Low Tom", 3, 1},   {34, "909 Mid Tom", 3, 1},
+    {35, "909 High Tom", 3, 1},   {36, "909 Rim Shot", 4, 1},   {37, "909 Hand Clap", 5, 1},
+    {38, "909 Closed HH", 6, 1},  {39, "909 Open HH", 6, 1},    {40, "909 Crash Cymbal", 7, 1},
+    {41, "909 Ride Cymbal", 7, 1},{42, "707 Bass 1", 1, 1},     {43, "707 Bass 2", 1, 1},
+    {44, "707 Snare 1", 2, 1},    {45, "707 Snare 2", 2, 1},    {46, "707 Low Tom", 3, 1},
+    {47, "707 Mid Tom", 3, 1},    {48, "707 High Tom", 3, 1},   {49, "707 Rim Shot", 4, 1},
+    {50, "707 Cowbell", 11, 1},   {51, "707 Hand Clap", 5, 1},  {52, "707 Tambourine", 10, 1},
+    {53, "707 Closed HH", 6, 1},  {54, "707 Open HH", 6, 1},    {55, "707 Crash Cymbal", 7, 1},
+    {56, "707 Ride Cymbal", 7, 1},{57, "727 High Bongo", 8, 1}, {58, "727 Low Bongo", 8, 1},
+    {59, "727 Mute HiConga", 8, 1},{60, "727 Open HiConga", 8, 1},{61, "727 Low Conga", 8, 1},
+    {62, "727 High Timbale", 8, 1},{63, "727 Low Timbale", 8, 1},{64, "727 High Agogo", 11, 1},
+    {65, "727 Low Agogo", 11, 1}, {66, "727 Cabasa", 10, 1},    {67, "727 Maracas", 10, 1},
+    {68, "727 ShortWhistle", 12, 1},{69, "727 Long Whistle", 12, 1},{70, "727 Quijada", 12, 1},
+    {71, "727 Star Chime", 12, 1},{72, "606 Bass", 1, 1},       {73, "606 Snare", 2, 1},
+    {74, "606 Low Tom", 3, 1},    {75, "606 Mid Tom", 3, 1},    {76, "606 High Tom", 3, 1},
+    {77, "606 Closed HH", 6, 1},  {78, "606 Open HH", 6, 1},    {79, "606 Cymbal", 7, 1},
+    {80, "606 Gate Cymbal", 7, 1}
+};
+
+static uint8_t inferPcmToneCategory(int id) {
+    if (id >= 181 && id <= 205) return 1;  // PCM Kicks
+    if (id >= 206 && id <= 248) return 2;  // PCM Snares
+    if (id >= 249 && id <= 262) return 3;  // PCM Toms
+    if (id >= 263 && id <= 270) return 4;  // PCM Rim Shots
+    if (id >= 271 && id <= 290) return 5;  // PCM Hand Claps / Snaps
+    if (id >= 291 && id <= 315) return 6;  // PCM Hi-Hats
+    if (id >= 316 && id <= 322) return 7;  // PCM Cymbals
+    if (id >= 323 && id <= 334) return 8;  // PCM Congas / Timbales / Samba
+    if (id >= 335 && id <= 340) return 9;  // PCM Claves / Blocks
+    if (id >= 341 && id <= 347) return 10; // PCM Shakers / Tambourines
+    if (id >= 348 && id <= 354) return 11; // PCM Cowbells / Agogos / Triangles
+    if (id >= 355 && id <= 358) return 12; // Jingle / Udu
+    if (id >= 359 && id <= 415) return 13; // FX / Hits / Zaps
+    if (id >= 416 && id <= 434) return 14; // Voice / Formants
+    if (id >= 435 && id <= 450) return 15; // Synth Leads / Pads
+    if (id >= 451 && id <= 475) return 16; // OSC Waveforms
+    if (id >= 476 && id <= 490) return 17; // Basses
+    if (id >= 491 && id <= 504) return 18; // Pianos / Mallets / Brass
+    if (id >= 505 && id <= 521) return 19; // Chords
+    return 1;
+}
+
 void RuntimeFirmwareLoader::initializeCleanDefaults() {
     if (gDefaultsInitialized)
         return;
@@ -91,29 +145,62 @@ void RuntimeFirmwareLoader::initializeCleanDefaults() {
 
     for (int i = 0; i < NUM_TONES; ++i) {
         FACTORY_TONES[i].id = static_cast<uint16_t>(i);
-        std::snprintf(FACTORY_TONES[i].name, sizeof(FACTORY_TONES[i].name), "Tone %03d (Load FW)", i);
-        FACTORY_TONES[i].category = static_cast<uint8_t>((i % 11) + 1);
-        FACTORY_TONES[i].engineType = 1;
+        std::snprintf(FACTORY_TONES[i].name, sizeof(FACTORY_TONES[i].name), "Tone %03d", i);
+        FACTORY_TONES[i].category = inferPcmToneCategory(i);
+        FACTORY_TONES[i].engineType = (i >= 181) ? 2 : 1;
     }
 
-    static const uint16_t kDefaultChTones[NUM_CHANNELS] = { 1, 5, 6, 7, 8, 15, 17, 21, 22, 23, 25 };
+    for (const auto& m : kBasePreviewTones) {
+        std::snprintf(FACTORY_TONES[m.id].name, sizeof(FACTORY_TONES[m.id].name), "%s", m.label);
+        FACTORY_TONES[m.id].category = m.cat;
+        FACTORY_TONES[m.id].engineType = m.engineType;
+    }
+    for (const auto& m : kSupplementalToneMeta) {
+        std::snprintf(FACTORY_TONES[m.id].name, sizeof(FACTORY_TONES[m.id].name), "%s", m.label);
+        FACTORY_TONES[m.id].category = m.cat;
+        FACTORY_TONES[m.id].engineType = m.engineType;
+    }
+
+    static const uint16_t k808ChTones[NUM_CHANNELS]  = { 1, 5, 6, 7, 8, 15, 17, 21, 22, 23, 25 };
+    static const uint16_t k909ChTones[NUM_CHANNELS]  = { 27, 31, 33, 34, 35, 36, 37, 38, 39, 40, 41 };
+    static const uint16_t k707ChTones[NUM_CHANNELS]  = { 42, 44, 46, 47, 48, 49, 51, 53, 54, 55, 56 };
+    static const uint16_t k727ChTones[NUM_CHANNELS]  = { 57, 59, 61, 62, 63, 64, 66, 68, 69, 70, 71 };
+    static const uint16_t k606ChTones[NUM_CHANNELS]  = { 72, 73, 74, 75, 76, 15, 17, 77, 78, 79, 80 };
+    static const uint16_t kCR78ChTones[NUM_CHANNELS] = { 159, 160, 165, 166, 172, 161, 169, 162, 163, 170, 171 };
+    static const uint16_t kFMChTones[NUM_CHANNELS]   = { 95, 102, 108, 109, 112, 113, 116, 118, 120, 122, 128 };
+
     for (int k = 0; k < NUM_KITS; ++k) {
         FACTORY_KITS[k].number = static_cast<uint8_t>(k + 1);
         std::snprintf(FACTORY_KITS[k].name, sizeof(FACTORY_KITS[k].name), "INIT KIT %03d", k + 1);
+        const uint16_t* chTones = (k == 1) ? k909ChTones
+                                : (k == 2) ? k707ChTones
+                                : (k == 3) ? k727ChTones
+                                : (k == 4) ? k606ChTones
+                                : (k == 84) ? kCR78ChTones
+                                : (k == 86) ? kFMChTones
+                                : k808ChTones;
         for (int ch = 0; ch < NUM_CHANNELS; ++ch) {
             auto& cp = FACTORY_KITS[k].channels[ch];
-            cp.toneId = kDefaultChTones[ch];
+            cp.toneId = chTones[ch];
             cp.tune = 128;
             cp.decay = 128;
             cp.level = 150;
             cp.gain = 81;
             cp.pan = 128;
-            cp.revSend = 20;
-            cp.dlySend = 10;
+            cp.revSend = 0;
+            cp.dlySend = 0;
             cp.ctrl = 128;
             cp.fxType = 0;
         }
     }
+
+    std::snprintf(FACTORY_KITS[0].name, sizeof(FACTORY_KITS[0].name), "TR-808");
+    std::snprintf(FACTORY_KITS[1].name, sizeof(FACTORY_KITS[1].name), "TR-909");
+    std::snprintf(FACTORY_KITS[2].name, sizeof(FACTORY_KITS[2].name), "TR-707");
+    std::snprintf(FACTORY_KITS[3].name, sizeof(FACTORY_KITS[3].name), "TR-727");
+    std::snprintf(FACTORY_KITS[4].name, sizeof(FACTORY_KITS[4].name), "TR-606");
+    std::snprintf(FACTORY_KITS[84].name, sizeof(FACTORY_KITS[84].name), "CR-78");
+    std::snprintf(FACTORY_KITS[86].name, sizeof(FACTORY_KITS[86].name), "FM-Groover");
 
     for (int p = 0; p < NUM_PATTERNS; ++p) {
         auto& ptn = FACTORY_PATTERNS[p];
@@ -131,48 +218,6 @@ void RuntimeFirmwareLoader::initializeCleanDefaults() {
 
 void RuntimeFirmwareLoader::activateStandalonePreviewMode() {
     initializeCleanDefaults();
-
-    static const FMOrCR78ToneMeta kBasePreviewTones[] = {
-        {0, "808 Bass 1", 1, 1},   {1, "808 Bass 2", 1, 1},   {2, "808 Long Bass", 1, 1},
-        {4, "808 Snare 1", 2, 1},  {5, "808 Snare 2", 2, 1},  {6, "808 Low Tom", 3, 1},
-        {7, "808 Mid Tom", 3, 1},  {8, "808 High Tom", 3, 1}, {15, "808 Rim Shot", 4, 1},
-        {17, "808 Hand Clap", 5, 1},{21, "808 Closed HH", 6, 1},{22, "808 Open HH", 6, 1},
-        {23, "808 Crash Cym", 7, 1},{25, "808 Cowbell", 11, 1},
-        {26, "909 Bass 1", 1, 1},  {27, "909 Bass 2", 1, 1},  {28, "909 Snare 1", 2, 1},
-        {29, "909 Snare 2", 2, 1}, {30, "909 Low Tom", 3, 1}, {31, "909 Mid Tom", 3, 1},
-        {32, "909 High Tom", 3, 1},{36, "909 Rim Shot", 4, 1},{37, "909 Hand Clap", 5, 1},
-        {38, "909 Closed HH", 6, 1},{39, "909 Open HH", 6, 1},{40, "909 Crash Cym", 7, 1},
-        {41, "909 Ride Cym", 7, 1}
-    };
-    for (const auto& m : kBasePreviewTones) {
-        std::snprintf(FACTORY_TONES[m.id].name, sizeof(FACTORY_TONES[m.id].name), "%s", m.label);
-        FACTORY_TONES[m.id].category = m.cat;
-        FACTORY_TONES[m.id].engineType = m.engineType;
-    }
-    for (const auto& m : kSupplementalToneMeta) {
-        std::snprintf(FACTORY_TONES[m.id].name, sizeof(FACTORY_TONES[m.id].name), "%s", m.label);
-        FACTORY_TONES[m.id].category = m.cat;
-        FACTORY_TONES[m.id].engineType = m.engineType;
-    }
-
-    std::snprintf(FACTORY_KITS[0].name, sizeof(FACTORY_KITS[0].name), "TR-808 Classic");
-    std::snprintf(FACTORY_KITS[1].name, sizeof(FACTORY_KITS[1].name), "TR-909 Studio");
-    std::snprintf(FACTORY_KITS[2].name, sizeof(FACTORY_KITS[2].name), "TR-707 Digital");
-    std::snprintf(FACTORY_KITS[3].name, sizeof(FACTORY_KITS[3].name), "TR-727 Latin");
-    std::snprintf(FACTORY_KITS[4].name, sizeof(FACTORY_KITS[4].name), "TR-606 Acid");
-    std::snprintf(FACTORY_KITS[84].name, sizeof(FACTORY_KITS[84].name), "CR-78 Vintage");
-    std::snprintf(FACTORY_KITS[86].name, sizeof(FACTORY_KITS[86].name), "FM Hard Techno");
-
-    static const uint16_t k909ChTones[NUM_CHANNELS] = { 27, 29, 30, 31, 32, 36, 37, 38, 39, 40, 41 };
-    static const uint16_t kFMChTones[NUM_CHANNELS]  = { 95, 102, 108, 109, 112, 113, 116, 118, 120, 122, 128 };
-    for (int ch = 0; ch < NUM_CHANNELS; ++ch) {
-        FACTORY_KITS[1].channels[ch].toneId = k909ChTones[ch];
-        FACTORY_KITS[1].channels[ch].revSend = (ch == 1 || ch == 5 || ch == 6 || ch >= 8) ? 95 : 24;
-        FACTORY_KITS[1].channels[ch].dlySend = (ch == 5 || ch == 6 || ch == 7) ? 78 : 18;
-        FACTORY_KITS[86].channels[ch].toneId = kFMChTones[ch];
-        FACTORY_KITS[86].channels[ch].revSend = (ch == 1 || ch == 6 || ch >= 8) ? 115 : 32;
-        FACTORY_KITS[86].channels[ch].dlySend = (ch == 5 || ch == 6 || ch == 7) ? 105 : 28;
-    }
 
     std::snprintf(FACTORY_PATTERNS[103].code, sizeof(FACTORY_PATTERNS[103].code), "7-08");
     std::snprintf(FACTORY_PATTERNS[103].name, sizeof(FACTORY_PATTERNS[103].name), "Hard Techno 909");
@@ -211,6 +256,20 @@ bool RuntimeFirmwareLoader::tryAutoLoadSavedFirmware() {
                 return true;
         }
     }
+
+    // Also probe standard local / user Downloads locations so DAW sessions auto-find firmware if present
+    const juce::File candidates[] = {
+        juce::File::getCurrentWorkingDirectory().getChildFile("tr8s_sys_v300.zip"),
+        juce::File::getCurrentWorkingDirectory().getChildFile("TR8S_UP.bin"),
+        juce::File::getSpecialLocation(juce::File::userHomeDirectory).getChildFile("Downloads/tr8s_sys_v300.zip"),
+        juce::File::getSpecialLocation(juce::File::userHomeDirectory).getChildFile("Downloads/TR8S_UP.bin")
+    };
+    for (const auto& cand : candidates) {
+        juce::String err;
+        if (cand.existsAsFile() && loadFromFile(cand, err, true))
+            return true;
+    }
+
     return false;
 }
 
@@ -310,6 +369,9 @@ bool RuntimeFirmwareLoader::parseInitParamBin(const uint8_t* data, size_t size, 
         if (dstKit.name[0] == '\0')
             std::snprintf(dstKit.name, sizeof(dstKit.name), "KIT %03d", kidx + 1);
 
+        uint8_t kitRevMaster = k[0x46]; // Kit Master Reverb Level (0 in classic vintage kits 1..6)
+        uint8_t kitDlyMaster = k[0x6E]; // Kit Master Delay Level (0 in classic vintage kits 1..6)
+
         for (int ch = 0; ch < NUM_CHANNELS; ++ch) {
             const uint8_t* slot = k + 0x184 + static_cast<size_t>(ch) * 0x34;
             const uint8_t* fx   = k + 0x3C0 + static_cast<size_t>(ch) * 0x20;
@@ -317,13 +379,19 @@ bool RuntimeFirmwareLoader::parseInitParamBin(const uint8_t* data, size_t size, 
             uint16_t tid = readLE16(slot);
             cp.toneId  = (tid < NUM_TONES) ? tid : 0;
             cp.tune    = slot[2];
-            cp.decay   = slot[3];
+            // PCM tones store 255 for nominal full-sample decay; normalize to 128 center
+            cp.decay   = (cp.toneId >= 181 && slot[3] >= 250) ? 128 : slot[3];
             cp.level   = 150;
             cp.gain    = slot[5];
             cp.pan     = slot[6];
-            cp.revSend = slot[7];
-            cp.dlySend = slot[8];
-            cp.ctrl    = slot[28];
+
+            uint32_t effRev = (static_cast<uint32_t>(slot[7]) * static_cast<uint32_t>(kitRevMaster)) / 255u;
+            uint32_t effDly = (static_cast<uint32_t>(slot[8]) * static_cast<uint32_t>(kitDlyMaster)) / 255u;
+            cp.revSend = static_cast<uint8_t>(std::min<uint32_t>(255u, effRev));
+            cp.dlySend = static_cast<uint8_t>(std::min<uint32_t>(255u, effDly));
+
+            // Non-morph ACB & PCM tones store filter flags [24, 200, 50] at slot[28..30]; center CTRL at 128
+            cp.ctrl    = (slot[28] == 24 && slot[29] == 200) ? 128 : slot[28];
             cp.fxType  = fx[0];
         }
     }
