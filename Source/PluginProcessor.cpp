@@ -166,7 +166,7 @@ void ReplicantTR8SAudioProcessor::setCurrentProgram(int index) {
 
 const juce::String ReplicantTR8SAudioProcessor::getProgramName(int index) {
     int idx = juce::jlimit(0, TR8SFirmware::NUM_KITS - 1, index);
-    return juce::String::formatted("%03d: %s", idx + 1, TR8SFirmware::FACTORY_KITS[idx].name);
+    return juce::String::formatted("%03d: ", idx + 1) + juce::String(TR8SFirmware::FACTORY_KITS[idx].name);
 }
 
 void ReplicantTR8SAudioProcessor::changeProgramName(int, const juce::String&) {}

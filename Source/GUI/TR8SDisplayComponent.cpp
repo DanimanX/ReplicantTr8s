@@ -97,20 +97,20 @@ void TR8SDisplayComponent::rebuildCatalogMenus() {
     kitCombo.clear(juce::dontSendNotification);
     for (int i = 0; i < TR8SFirmware::NUM_KITS; ++i) {
         const auto& k = TR8SFirmware::FACTORY_KITS[i];
-        kitCombo.addItem(juce::String::formatted("KIT %03d: %s", k.number, k.name), i + 1);
+        kitCombo.addItem(juce::String::formatted("KIT %03d: ", k.number) + juce::String(k.name), i + 1);
     }
 
     patternCombo.clear(juce::dontSendNotification);
     for (int i = 0; i < TR8SFirmware::NUM_PATTERNS; ++i) {
         const auto& p = TR8SFirmware::FACTORY_PATTERNS[i];
-        patternCombo.addItem(juce::String::formatted("PTN %s: %s", p.code, p.name), i + 1);
+        patternCombo.addItem("PTN " + juce::String(p.code) + ": " + juce::String(p.name), i + 1);
     }
 
     toneCombo.clear(juce::dontSendNotification);
     for (int i = 0; i < TR8SFirmware::NUM_TONES; ++i) {
         const auto& t = TR8SFirmware::FACTORY_TONES[i];
         const char* engTag = (t.engineType == 1) ? "ACB" : (t.engineType == 3 ? "FM" : "PCM");
-        toneCombo.addItem(juce::String::formatted("[%03d %s] %s", t.id, engTag, t.name), i + 1);
+        toneCombo.addItem(juce::String::formatted("[%03d ", t.id) + engTag + "] " + juce::String(t.name), i + 1);
     }
 
     refreshSelectorsFromEngine();
@@ -216,11 +216,10 @@ void TR8SDisplayComponent::paint(juce::Graphics& g) {
 
     g.setFont(juce::Font(juce::FontOptions(11.5f, juce::Font::bold)));
     g.setColour(juce::Colour(0xff84f5ff));
-    juce::String statusLeft = juce::String::formatted("PTN %s %-15s | KIT %03d %-14s",
-        engine.getCurrentPatternCode().toRawUTF8(),
-        engine.getCurrentPatternName().toRawUTF8(),
-        engine.getCurrentKitIndex() + 1,
-        engine.getCurrentKitName().toRawUTF8());
+    juce::String statusLeft = "PTN " + engine.getCurrentPatternCode() + " "
+        + engine.getCurrentPatternName().paddedRight(' ', 15)
+        + juce::String::formatted(" | KIT %03d ", engine.getCurrentKitIndex() + 1)
+        + engine.getCurrentKitName().paddedRight(' ', 14);
     g.drawText(statusLeft, topBar.reduced(6.0f, 0.0f), juce::Justification::centredLeft, false);
 
     juce::String statusRight = juce::String::formatted("VAR [%c]  STEP %02d/16  FW 3.00",
@@ -239,10 +238,9 @@ void TR8SDisplayComponent::paint(juce::Graphics& g) {
     // Left Pane: Selected Channel & Tone / Sample Name
     g.setColour(chCol);
     g.setFont(juce::Font(juce::FontOptions(13.0f, juce::Font::bold)));
-    g.drawText(juce::String::formatted("CH %02d [%s] - %s",
-               selCh + 1,
-               TR8SFirmware::CHANNEL_NAMES[selCh],
-               TR8SFirmware::CHANNEL_FULL_NAMES[selCh]),
+    g.drawText(juce::String::formatted("CH %02d [", selCh + 1)
+               + TR8SFirmware::CHANNEL_NAMES[selCh] + "] - "
+               + TR8SFirmware::CHANNEL_FULL_NAMES[selCh],
                leftPane.removeFromTop(16.0f), juce::Justification::centredLeft, false);
 
     // Engine / Sample Tag + Tone Name
@@ -253,7 +251,7 @@ void TR8SDisplayComponent::paint(juce::Graphics& g) {
         instName = voice.getCustomSampleName();
     } else {
         srcBadge = (tone.engineType == 1) ? "ACB CIRCUIT" : (tone.engineType == 3 ? "FM 2-OP" : "PCM SYNTH");
-        instName = juce::String::formatted("%03d: %s", tone.id, tone.name);
+        instName = juce::String::formatted("%03d: ", tone.id) + juce::String(tone.name);
     }
 
     auto toneRow = leftPane.removeFromTop(18.0f);

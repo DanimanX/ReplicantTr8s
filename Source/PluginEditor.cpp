@@ -717,10 +717,9 @@ void ReplicantTR8SAudioProcessorEditor::paint(juce::Graphics& g) {
     int selCh = eng.getSelectedChannel();
     juce::String seqHeader = editingAccentTrack
         ? "TR-REC TARGET: [ACCENT TRACK]  |  16-STEP SEQUENCER"
-        : juce::String::formatted("TR-REC TARGET: [%s - %s]  |  VAR [%c]",
-            TR8SFirmware::CHANNEL_NAMES[selCh],
-            TR8SFirmware::CHANNEL_FULL_NAMES[selCh],
-            'A' + eng.getCurrentVariation());
+        : "TR-REC TARGET: [" + juce::String(TR8SFirmware::CHANNEL_NAMES[selCh]) + " - "
+            + TR8SFirmware::CHANNEL_FULL_NAMES[selCh] + "]  |  VAR ["
+            + juce::String::charToString(static_cast<juce::juce_wchar>('A' + eng.getCurrentVariation())) + "]";
     g.drawText(seqHeader, 860, 600, 402, 36, juce::Justification::centredRight, false);
 
     // 7. Draw 16 RGB TR-REC Step Sequencer Pads (1..16)
